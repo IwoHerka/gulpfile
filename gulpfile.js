@@ -5,6 +5,7 @@
  *   |   |-- fonts
  *   |   |-- images
  *   |   |-- scripts
+ *   |   |    `-- coffee
  *   |   |-- styles
  *   |   `-- manifest.json
  *   |-- static
@@ -243,7 +244,7 @@ gulp.task('styles', ['wiredep'], function() {
  * `gulp scripts` - Runs JSHint then compiles, combines,
  * and optimizes Bower JS and project JS.
  */
-gulp.task('scripts', ['jshint', 'coffeelint'], function() {
+gulp.task('scripts', ['jshint', 'coffee'], function() {
   var merged = merge();
   manifest.forEachDependency('js', function(dep) {
     merged.add(
@@ -294,14 +295,27 @@ gulp.task('jshint', function() {
  * `gulp coffeelint` - Lints project .coffee
  */
 gulp.task('coffeelint', function() {
-  return gulp.src(project.js)
+  return gulp.src(path.coffee + '*.coffee')
   .pipe(coffeelint())
   .pipe(coffeelint.reporter());
 });
 
-gulp.task('rev', function () {
-  gutil.log(path.templates);
-  return gulp.src(['static/dist/*.json', 'templates/**/*.html'])
+/*
+ * `gulp coffee` - Compile project .coffee to .js
+ */
+gulp.task('coffee', ['coffeelint'], function() {
+  return gulp.src(path.coffee + '*.coffee')
+  .pipe(coffee({bare: true}).on('error', gutil.log))
+  .pipe(gulp.dest(path.scripts));
+});
+
+/*
+ * `gulp collect-rev` - Find static revisioned data and
+ * replace its links in html template.
+ * See https://github.com/shonny-ua/gulp-rev-collector
+ */
+gulp.task('collect-rev', function () {
+  return gulp.src([buildPath + '*.json', 'templates/**/*.html'])
     .pipe(collector())
     .pipe(gulp.dest(path.templates));
 });
@@ -335,6 +349,7 @@ gulp.task('build', function(callback) {
     'styles',
     'scripts',
     ['fonts', 'images'],
+    'collect-rev',
     callback
   );
 });
